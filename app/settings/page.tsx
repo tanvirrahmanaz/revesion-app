@@ -1,53 +1,76 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useSession } from "next-auth/react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 export default function SettingsPage() {
-  const [emailEnabled, setEmailEnabled] = useState(false)
-  const { data: session, status } = useSession()
-  const router = useRouter()
+  const [emailEnabled, setEmailEnabled] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const { data: session, status } = useSession();
+  const router = useRouter();
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      router.push("/login")
+      router.push("/login");
     } else if (status === "authenticated") {
-      fetchSettings()
+      fetchSettings();
     }
-  }, [status, router])
+  }, [status, router]);
 
   const fetchSettings = async () => {
-    const response = await fetch("/api/settings")
-    if (response.ok) {
-      const data = await response.json()
-      setEmailEnabled(data.emailEnabled)
+    try {
+      const response = await fetch("/api/settings");
+      if (response.ok) {
+        const data = await response.json();
+        setEmailEnabled(data.emailEnabled);
+      } else {
+        console.error("Failed to fetch settings.");
+      }
+    } catch (error) {
+      console.error("Error fetching settings:", error);
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
   const handleToggleEmail = async () => {
-    const response = await fetch("/api/settings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ emailEnabled: !emailEnabled }),
-    })
-    if (response.ok) {
-      setEmailEnabled(!emailEnabled)
-    }
-  }
+    try {
+      const response = await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emailEnabled: !emailEnabled }),
+      });
 
-  if (status === "loading") {
-    return <div>Loading...</div>
+      if (response.ok) {
+        setEmailEnabled(!emailEnabled);
+      } else {
+        console.error("Failed to update settings.");
+      }
+    } catch (error) {
+      console.error("Error updating settings:", error);
+    }
+  };
+
+  if (status === "loading" || loading) {
+    return <div>Loading...</div>;
   }
 
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Settings</h1>
       <div className="flex items-center">
-        <input type="checkbox" id="emailToggle" checked={emailEnabled} onChange={handleToggleEmail} className="mr-2" />
-        <label htmlFor="emailToggle">Receive daily email summaries</label>
+        <input
+          type="checkbox"
+          id="emailToggle"
+          checked={emailEnabled}
+          onChange={handleToggleEmail}
+          className="mr-2"
+        />
+        <label htmlFor="emailToggle" className="cursor-pointer">
+          Receive daily email summaries
+        </label>
       </div>
     </div>
-  )
+  );
 }
-
